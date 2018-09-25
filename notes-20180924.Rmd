@@ -17,6 +17,7 @@ library(dplyr)
 library(knitr)
 library(ggmap)
 library(kableExtra)
+#library(dataMaid)
 opts_chunk$set(warning = FALSE)
 opts_chunk$set(message=FALSE)
 #opts_chunk$set(results='asis')
@@ -52,14 +53,18 @@ fy_2016 <- read_csv("data/fy-2016-civilian-agency-public-frpp-dataset-12142017.c
 fy_2016 <- subset(fy_2016,tolower(Country)=="united states")
 ```
 ```{r,echo=FALSE}
-summary(fy_2016) %>% t() %>%
-	kable() %>%
-	kable_styling("striped") %>%
-  add_header_above(c("Variable" = 1, "Information" = 7))
+library(dataMaid)
+makeCodebook(fy_2016,replace=TRUE,smartNum=10,maxProbVals=10,output="html")
+detach("package:dataMaid")
+#summary(fy_2016) %>% t() %>%
+#	kable() %>%
+#	kable_styling("striped") %>%
+#  add_header_above(c("Variable" = 1, "Information" = 7))
 ```
 
 
 The 2016 file has `r nrow(fy_2016)` observations in the  United States. The remainder are government installations abroad.
+A full codebook can be found [here](codebook_fy_2016.html).
 
 ## Comparing Public-Use and Internal-Use
 The following elements would be required if used conjointly with OPM data:
