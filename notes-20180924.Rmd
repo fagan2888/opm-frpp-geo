@@ -10,7 +10,7 @@ editor_options:
 ---
 We are only going to be looking at *civilian agencies*.
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE,message=FALSE,error=FALSE}
 library(readr)
 library(tidyr)
 library(dplyr)
@@ -46,11 +46,18 @@ loc.2017 <- "https://inventory.data.gov/dataset/509d3f36-464e-4e4c-a26b-8582605c
 - Last Update:     March 16, 2018
 -  Frequency of Updates:     Annual
 
-```{r readin,error=FALSE}
+```{r readin,error=FALSE,cache=TRUE}
 fy_2016 <- read_csv("data/fy-2016-civilian-agency-public-frpp-dataset-12142017.csv",progress = FALSE)
 # restrict to united states
 fy_2016 <- subset(fy_2016,tolower(Country)=="united states")
 ```
+```{r,echo=FALSE}
+summary(fy_2016) %>% t() %>%
+	kable() %>%
+	kable_styling("striped") %>%
+  add_header_above(c("Variable" = 1, "Information" = 7))
+```
+
 
 The 2016 file has `r nrow(fy_2016)` observations in the  United States. The remainder are government installations abroad.
 
@@ -58,28 +65,33 @@ The 2016 file has `r nrow(fy_2016)` observations in the  United States. The rema
 The file comes with latitude/ longitude, but for some reason, a significant portion are empty. Most of the records are for "owned" property:
 ```{r find_missing_geo}
 fy_2016$missing_geo <- is.na(fy_2016$Latitude)
+```
+```{r,echo=FALSE}
 table(fy_2016$`Legal Interest Indicator`,fy_2016$missing_geo) %>% kable() %>%
 	kable_styling("striped") %>%
 	group_rows("Legal Interest",1,5) %>%
   add_header_above(c(" " = 1, "Missing Lat/Long" = 2))
 ```
+
 It is not that the address is missing, although that contributes:
 ```{r find_missing_adr}
 fy_2016$missing_adr <- is.na(fy_2016$`Street Address`)
+```
+```{r,echo=FALSE}
 table(fy_2016$missing_adr,fy_2016$missing_geo) %>% kable() %>%
 	kable_styling("striped") %>%
 	group_rows("Missing street address",1,2) %>%
   add_header_above(c(" " = 1, "Missing Lat/Long" = 2))
 ```
 nor that the address cannot be geo-coded, when lat/long is missing but street address is available:
-```{r setup_geocoding}
+```{r setup_geocoding,cache=TRUE}
 fy_2016$complete_address <- paste(fy_2016$`Street Address`,fy_2016$City,fy_2016$State,fy_2016$`ZIP Code`,sep=", ")
 # we only run a sample of 100 records. The DataScienceToolkit uses OpenStreetMap for geocoding.
 fy_2016_sample <- fy_2016 %>% 
 	filter(missing_adr == FALSE, missing_geo == TRUE) %>%
 	sample_n(100)
 ```
-```{r geocode,results='hide'}
+```{r geocode,results='hide',cache=TRUE}
 test_geo <- geocode(fy_2016_sample$complete_address,output=c("more"),source=c("dsk"))
 ```
 ```{r geocoding_results}
@@ -92,7 +104,7 @@ table(test_geo$type,test_geo$loctype) %>% kable() %>%
 # Coverage
 
 The internal version of the FRPP also has the number of employees at the location. The public-use version only has square-footage. As a rough estimate of the fraction of population-weighted availability of geocoded data, we tabulate by square-footage (we neglect the distinction by "gross" and "rentable" square footage):
-```{r sum_sqft}
+```{r sum_sqft,echo=FALSE}
 fy_2016 %>% group_by(missing_geo) %>% summarize(`Square Feet`=sum(`Square Feet (Buildings)`,na.rm = TRUE)) %>%
 	mutate("Percent" = `Square Feet`*100/sum(`Square Feet`)) %>%
 	kable() %>%
